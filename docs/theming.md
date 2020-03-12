@@ -31,6 +31,12 @@ Available options are:
  - useDetailsView - boolean
  - selectCircleStrokeColor - HEX string
  - selectionLimitReachedText - string
+ - textOnNothingSelected - string
+ - backButtonDrawable - string
+ - okButtonDrawable - string
+ - autoCloseOnSelectionLimit - automatically close the image picker when selection limit is reached
+
+!> backButtonDrawable and okButtonDrawable must exists as drawable resources under your `android/app/src/res/drawable` folder.
 
 ## iOS customization
 
@@ -41,7 +47,7 @@ You can customize different parts of the gallery picker. To do so, you can simpl
 ```dart
 List resultList = await MultiImagePicker.pickImages(
     maxImages: 3,
-    options: CupertinoOptions(
+    cupertinoOptions: CupertinoOptions(
       selectionFillColor: "#ff11ab",
       selectionTextColor: "#ff00a5",
       selectionCharacter: "✓",
@@ -57,6 +63,7 @@ Available options are:
  - selectionTextColor - HEX string
  - selectionCharacter - Unicode character
  - takePhotoIcon - Name of the icon, as defined in your Assets
+ - autoCloseOnSelectionLimit - automatically close the image picker when selection limit is reached
 
 > **Note**: To add an icon to your XCode Assets, follow these steps:
 > >

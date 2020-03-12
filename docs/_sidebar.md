@@ -11,6 +11,7 @@
   - [Enable Camera](enablecamera.md)
   - [Metadata](metadata.md)
   - [Customization](theming.md)
+  - [Error Handling](errorhandling.md)
 
 - Troubleshooting
 
@@ -19,7 +20,6 @@
   - [iOS](iostroubleshooting.md)
 
 - [FAQ](faq.md)
-
 - [Upgrading](upgrading.md)
 
 - API Reference

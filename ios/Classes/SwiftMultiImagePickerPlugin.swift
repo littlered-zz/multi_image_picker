@@ -26,13 +26,13 @@ extension PHAsset {
 }
 
 public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
-    var controller: FlutterViewController!
+    var controller: UIViewController!
     var imagesResult: FlutterResult?
     var messenger: FlutterBinaryMessenger;
 
     let genericError = "500"
 
-    init(cont: FlutterViewController, messenger: FlutterBinaryMessenger) {
+    init(cont: UIViewController, messenger: FlutterBinaryMessenger) {
         self.controller = cont;
         self.messenger = messenger;
         super.init();
@@ -42,7 +42,17 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
         let channel = FlutterMethodChannel(name: "multi_image_picker", binaryMessenger: registrar.messenger())
 
         let app =  UIApplication.shared
-        let controller : FlutterViewController = app.delegate!.window!!.rootViewController as! FlutterViewController;
+        let rootController = app.delegate!.window!!.rootViewController
+        var flutterController: FlutterViewController? = nil
+        if rootController is FlutterViewController {
+            flutterController = rootController as! FlutterViewController
+        } else if app.delegate is FlutterAppDelegate {
+            if (app.delegate?.responds(to: Selector("flutterEngine")))! {
+                let engine: FlutterEngine? = app.delegate?.perform(Selector("flutterEngine"))?.takeRetainedValue() as! FlutterEngine
+                flutterController = engine?.viewController
+            }
+        }
+        let controller : UIViewController = flutterController ?? rootController!;
         let instance = SwiftMultiImagePickerPlugin.init(cont: controller, messenger: registrar.messenger())
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
@@ -50,12 +60,20 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch (call.method) {
         case "pickImages":
+            let status: PHAuthorizationStatus = PHPhotoLibrary.authorizationStatus()
+            
+            if (status == PHAuthorizationStatus.denied) {
+                return result(FlutterError(code: "PERMISSION_PERMANENTLY_DENIED", message: "The user has denied the gallery access.", details: nil))
+            }
+            
             let vc = BSImagePickerViewController()
             let arguments = call.arguments as! Dictionary<String, AnyObject>
             let maxImages = arguments["maxImages"] as! Int
             let enableCamera = arguments["enableCamera"] as! Bool
             let options = arguments["iosOptions"] as! Dictionary<String, String>
             let selectedAssets = arguments["selectedAssets"] as! Array<String>
+            var totalImagesSelected = 0
+            
             vc.maxNumberOfSelections = maxImages
 
             if (enableCamera) {
@@ -111,11 +129,19 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
 
             controller!.bs_presentImagePickerController(vc, animated: true,
                 select: { (asset: PHAsset) -> Void in
-
+                    totalImagesSelected += 1
+                    
+                    if let autoCloseOnSelectionLimit = options["autoCloseOnSelectionLimit"] {
+                        if (!autoCloseOnSelectionLimit.isEmpty && autoCloseOnSelectionLimit == "true") {
+                            if (maxImages == totalImagesSelected) {
+                                UIApplication.shared.sendAction(vc.doneButton.action!, to: vc.doneButton.target, from: self, for: nil)
+                            }
+                        }
+                    }
                 }, deselect: { (asset: PHAsset) -> Void in
-
+                    totalImagesSelected -= 1
                 }, cancel: { (assets: [PHAsset]) -> Void in
-                    result([])
+                    result(FlutterError(code: "CANCELLED", message: "The user has cancelled the selection", details: nil))
                 }, finish: { (assets: [PHAsset]) -> Void in
                     var results = [NSDictionary]();
                     for asset in assets {
@@ -143,6 +169,7 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
             options.resizeMode = PHImageRequestOptionsResizeMode.exact
             options.isSynchronous = false
             options.isNetworkAccessAllowed = true
+            options.version = .current
 
             let assets: PHFetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil)
 
@@ -160,10 +187,11 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
                         })
 
                 if(PHInvalidImageRequestID != ID) {
-                    result(true);
+                    return result(true);
                 }
             }
-            break;
+            
+            return result(FlutterError(code: "ASSET_DOES_NOT_EXIST", message: "The requested image does not exist.", details: nil))
         case "requestOriginal":
             let arguments = call.arguments as! Dictionary<String, AnyObject>
             let identifier = arguments["identifier"] as! String
@@ -174,6 +202,7 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
             options.deliveryMode = PHImageRequestOptionsDeliveryMode.highQualityFormat
             options.isSynchronous = false
             options.isNetworkAccessAllowed = true
+            options.version = .current
 
             let assets: PHFetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil)
 
@@ -191,29 +220,11 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
                 })
 
                 if(PHInvalidImageRequestID != ID) {
-                    result(true);
+                    return result(true);
                 }
             }
-            break;
-        case "refreshImage":
-            result(true) ;
-            break ;
-        case "deleteImages":
-            let arguments = call.arguments as! Dictionary<String, AnyObject>
-            let identifiers = arguments["identifiers"] as! Array<String>
-            let assets: PHFetchResult = PHAsset.fetchAssets(withLocalIdentifiers: identifiers, options: nil)
-            PHPhotoLibrary.shared().performChanges( {
-                PHAssetChangeRequest.deleteAssets(assets)
-            },
-            completionHandler: { success, error in
-                if(success) {
-                    result(true)
-                }
-                else {
-                    result(false)
-                }
-            })
-            break ;
+            
+            return result(FlutterError(code: "ASSET_DOES_NOT_EXIST", message: "The requested image does not exist.", details: nil))
         case "requestMetadata":
             let arguments = call.arguments as! Dictionary<String, AnyObject>
             let identifier = arguments["identifier"] as! String

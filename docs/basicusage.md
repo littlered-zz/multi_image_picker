@@ -8,7 +8,6 @@ main.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:flutter/services.dart';
 import 'package:multi_image_picker/multi_image_picker.dart';
 
 void main() => runApp(new MyApp());
@@ -28,17 +27,20 @@ class _MyAppState extends State<MyApp> {
   }
 
   Widget buildGridView() {
-    return GridView.count(
-      crossAxisCount: 3,
-      children: List.generate(images.length, (index) {
-        Asset asset = images[index];
-        return AssetThumb(
-          asset: asset,
-          width: 300,
-          height: 300,
-        );
-      }),
-    );
+    if (images != null)
+      return GridView.count(
+        crossAxisCount: 3,
+        children: List.generate(images.length, (index) {
+          Asset asset = images[index];
+          return AssetThumb(
+            asset: asset,
+            width: 300,
+            height: 300,
+          );
+        }),
+      );
+    else
+      return Container(color: Colors.white);
   }
 
   Future<void> loadAssets() async {
@@ -53,8 +55,8 @@ class _MyAppState extends State<MyApp> {
       resultList = await MultiImagePicker.pickImages(
         maxImages: 300,
       );
-    } on PlatformException catch (e) {
-      error = e.message;
+    } on Exception catch (e) {
+      error = e.toString();
     }
 
     // If the widget was removed from the tree while the asynchronous platform

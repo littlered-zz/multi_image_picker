@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
 import 'package:meta/meta.dart';
 import 'package:multi_image_picker/multi_image_picker.dart';
+import 'package:multi_image_picker/src/exceptions.dart';
 
 class MultiImagePicker {
   static const MethodChannel _channel =
@@ -45,27 +46,40 @@ class MultiImagePicker {
       throw new ArgumentError.value(maxImages, 'maxImages cannot be negative');
     }
 
-    final List<dynamic> images =
-        await _channel.invokeMethod('pickImages', <String, dynamic>{
-      'maxImages': maxImages,
-      'enableCamera': enableCamera,
-      'iosOptions': cupertinoOptions.toJson(),
-      'androidOptions': materialOptions.toJson(),
-      'selectedAssets':
-          selectedAssets.map((Asset asset) => asset.identifier).toList(),
-    });
-
-    var assets = List<Asset>();
-    for (var item in images) {
-      var asset = Asset(
-        item['identifier'],
-        item['name'],
-        item['width'],
-        item['height'],
+    try {
+      final List<dynamic> images = await _channel.invokeMethod(
+        'pickImages',
+        <String, dynamic>{
+          'maxImages': maxImages,
+          'enableCamera': enableCamera,
+          'iosOptions': cupertinoOptions.toJson(),
+          'androidOptions': materialOptions.toJson(),
+          'selectedAssets': selectedAssets
+              .map(
+                (Asset asset) => asset.identifier,
+              )
+              .toList(),
+        },
       );
-      assets.add(asset);
+      var assets = List<Asset>();
+      for (var item in images) {
+        var asset = Asset(
+          item['identifier'],
+          item['name'],
+          item['width'],
+          item['height'],
+        );
+        assets.add(asset);
+      }
+      return assets;
+    } on PlatformException catch (e) {
+      switch (e.code) {
+        case "CANCELLED":
+          throw NoImagesSelectedException(e.message);
+        default:
+          throw e;
+      }
     }
-    return assets;
   }
 
   /// Requests a thumbnail with [width], [height]
@@ -95,14 +109,27 @@ class MultiImagePicker {
           quality, 'quality should be in range 0-100');
     }
 
-    bool ret = await _channel.invokeMethod(
-        "requestThumbnail", <String, dynamic>{
-      "identifier": identifier,
-      "width": width,
-      "height": height,
-      "quality": quality
-    });
-    return ret;
+    try {
+      bool ret = await _channel.invokeMethod(
+          "requestThumbnail", <String, dynamic>{
+        "identifier": identifier,
+        "width": width,
+        "height": height,
+        "quality": quality
+      });
+      return ret;
+    } on PlatformException catch (e) {
+      switch (e.code) {
+        case "ASSET_DOES_NOT_EXIST":
+          throw AssetNotFoundException(e.message);
+        case "PERMISSION_DENIED":
+          throw PermissionDeniedException(e.message);
+        case "PERMISSION_PERMANENTLY_DENIED":
+          throw PermissionPermanentlyDeniedExeption(e.message);
+        default:
+          throw e;
+      }
+    }
   }
 
   /// Requests the original image data for a given
@@ -114,11 +141,21 @@ class MultiImagePicker {
   ///
   /// The actual image data is sent via BinaryChannel.
   static Future<bool> requestOriginal(String identifier, quality) async {
-    bool ret = await _channel.invokeMethod("requestOriginal", <String, dynamic>{
-      "identifier": identifier,
-      "quality": quality,
-    });
-    return ret;
+    try {
+      bool ret =
+          await _channel.invokeMethod("requestOriginal", <String, dynamic>{
+        "identifier": identifier,
+        "quality": quality,
+      });
+      return ret;
+    } on PlatformException catch (e) {
+      switch (e.code) {
+        case "ASSET_DOES_NOT_EXIST":
+          throw AssetNotFoundException(e.message);
+        default:
+          throw e;
+      }
+    }
   }
 
   // Requests image metadata for a given [identifier]
@@ -136,22 +173,6 @@ class MultiImagePicker {
     }
 
     return Metadata.fromMap(metadata);
-  }
-
-  /// Refresh image gallery with specific path
-  /// [path].
-  ///
-  /// This method is used by refresh image gallery
-  /// Some of the image picker would not be refresh automatically
-  /// You can refresh it manually.
-  static Future<bool> refreshImage({
-    @required String path,
-  }) async {
-    assert(path != null);
-    bool result = await _channel
-        .invokeMethod("refreshImage", <String, dynamic>{"path": path});
-
-    return result;
   }
 
   /// Normalizes the meta data returned by iOS.
@@ -178,18 +199,5 @@ class MultiImagePicker {
     });
 
     return map;
-  }
-
-  /// Delete images from the gallery
-  /// [List<Asset>].
-  ///
-  /// Allows you to delete array of Asset objects from the filesystem.
-  static Future<bool> deleteImages({@required List<Asset> assets}) async {
-    assert(assets != null);
-    List<String> identifiers = assets.map((a) => a.identifier).toList();
-    bool result = await _channel.invokeMethod(
-        "deleteImages", <String, dynamic>{"identifiers": identifiers});
-
-    return result;
   }
 }

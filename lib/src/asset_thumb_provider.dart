@@ -28,10 +28,18 @@ class AssetThumbImageProvider extends ImageProvider<AssetThumbImageProvider> {
         assert(height != null);
 
   @override
-  ImageStreamCompleter load(AssetThumbImageProvider key) {
+  ImageStreamCompleter load(
+      AssetThumbImageProvider key, DecoderCallback decode) {
     return new MultiFrameImageStreamCompleter(
       codec: _loadAsync(key),
       scale: key.scale,
+      informationCollector: () sync* {
+        yield DiagnosticsProperty<ImageProvider>(
+          'AssetThumbImageProvider: $this \n Image key: $key',
+          this,
+          style: DiagnosticsTreeStyle.errorProperty,
+        );
+      },
     );
   }
 
@@ -39,7 +47,7 @@ class AssetThumbImageProvider extends ImageProvider<AssetThumbImageProvider> {
     assert(key == this);
 
     ByteData data = await key.asset
-        .requestThumbnail(key.width, key.height, quality: key.quality);
+        .getThumbByteData(key.width, key.height, quality: key.quality);
     final bytes = data.buffer.asUint8List();
 
     return await ui.instantiateImageCodec(bytes);
@@ -49,4 +57,23 @@ class AssetThumbImageProvider extends ImageProvider<AssetThumbImageProvider> {
   Future<AssetThumbImageProvider> obtainKey(ImageConfiguration configuration) {
     return SynchronousFuture<AssetThumbImageProvider>(this);
   }
+
+  @override
+  bool operator ==(dynamic other) {
+    if (other.runtimeType != runtimeType) return false;
+    final AssetThumbImageProvider typedOther = other;
+    return asset?.identifier == typedOther.asset?.identifier &&
+        scale == typedOther.scale &&
+        width == typedOther.width &&
+        height == typedOther.height &&
+        quality == typedOther.quality;
+  }
+
+  @override
+  int get hashCode =>
+      hashValues(asset?.identifier, scale, width, height, quality);
+
+  @override
+  String toString() => '$runtimeType(${asset?.identifier}, scale: $scale, '
+      'width: $width, height: $height, quality: $quality)';
 }

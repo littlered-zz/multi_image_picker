@@ -4,6 +4,137 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+### Change (v4.6.3)
+
+## 2020-03-07
+
+- Revert Adding support for Android API Level 16 and up [#339](https://github.com/Sh1d0w/multi_image_picker/pull/399)
+
+### Change (v4.6.2)
+
+## 2020-03-05
+
+- Adding support for Android API Level 16 and up [#339](https://github.com/Sh1d0w/multi_image_picker/pull/399)
+
+
+### Change (v4.6.1)
+
+## 2020-01-04
+
+- Update FishBun version and remove permission handling from the library. FishBun and BSImagePicker handle permission requests by themselves
+  
+### Change (v4.6.0-rc.3)
+
+## 2019-11-21
+
+- Remove direct access to file URL, beacause of breaking change in iOS 13. Please use `getByteData` or `getThumbData` to obtain the images.
+
+### Change (v4.6.0-rc.2)
+
+## 2019-11-20
+
+- Annotate controller type with UIViewController  [#316](https://github.com/Sh1d0w/multi_image_picker/pull/316)
+
+### Change (v4.6.0-rc.1)
+
+## 2019-11-08
+
+- BREAKING CHANGE: Compatibility for [breaking change in Flutter 1.10.15](https://groups.google.com/forum/#!topic/flutter-announce/lUKzLAd8OG8)
+
+### Changed (v4.5.9)
+
+## 2019-10-29
+
+- Images that fail to download from iCloud on iOS will now throw `AssetFailedToDownloadException` exception if you try to access the path.
+  
+### Changed (v4.5.8)
+
+## 2019-10-09
+
+- `getByteData` and `getThumbByteData` now will return the current image with all adjustments on iOS [#277](https://github.com/Sh1d0w/multi_image_picker/issues/277)
+
+### Changed (v4.5.7)
+
+## 2019-10-06
+
+- Add new option for both Android and iOS `autoCloseOnSelectionLimit`. It will close the image picker as soon as the selection limit is reached.
+
+### Changed (v4.5.6)
+
+## 2019-09-26
+
+- Fix crash on iOS when optimize storage is enabled
+
+### Changed (v4.5.5)
+
+## 2019-09-16
+
+- Update BSImagePicker version to 2.10.2
+
+### Changed (v4.5.4)
+
+## 2019-09-11
+
+- Update BSImagePicker version to 2.10.1
+
+### Changed (v4.5.3)
+
+## 2019-09-03
+
+- Update FishBun to version 0.11.1
+- Fixed picking image using camera does not return FilePath [#226](https://github.com/Sh1d0w/multi_image_picker/issues/226)
+
+### Changed (v4.5.2)
+
+## 2019-08-19
+
+- Trying to read images that does not exists will now throw AssetNotFoundException [#222](https://github.com/Sh1d0w/multi_image_picker/issues/222)
+
+### Changed (v4.5.1)
+
+## 2019-08-17
+
+- Permission Denied error now will be correctly thrown on iOS if the user has disabled camera access.
+
+### Changed (v4.5.0+2)
+
+## 2019-08-13
+
+- Don't pin meta package version
+
+### Changed (v4.5.0+1)
+
+## 2019-08-13
+
+- Make thumb provider use non depracated plugin methods
+- Temporarily pin meta package version to 1.1.7
+
+### Changed (v4.5.0)
+
+## 2019-08-12
+
+- The plugin now returns file paths as well. To obtain the asset file path use `await asset.filePath`
+- Removed `deleteImages` method. This plugin purpose is only to pick images.
+- Deprecated `Asset.requestThumbnail` method. Use `Asset.getThumbByteData` instead.
+- Deprecated `Asset.requestOriginal` method. Use `Asset.getByteData` instead.
+- Deprecated `Asset.requestMetadata` method. Use `Asset.metadata` instead.
+
+### Changed (v4.4.1)
+
+## 2019-08-06
+
+- Pin minimum Flutter version required to 1.7.8
+
+### Changed (v4.4.0)
+
+## 2019-08-06
+
+- Added Material option `textOnNothingSelected` [#201](https://github.com/Sh1d0w/multi_image_picker/issues/201)
+- Updated the code to use defaultBinaryMessenger instead of the deprecated BinaryMessenger
+- `pickImages` now throws NoImagesSelectedException, PermissionDeniedException and PermissionPermanentlyDeniedExeption in addition to PlatformException. You can implement different logic for handling each case separately now.
+- dateTime, dateTimeOriginal and dateTimeDigitized in the Metadata.exif object will now properly be returned as strings.  The format is "YYYY:MM:DD HH:MM:SS" with time shown in 24-hour format as per Exif spec.
+- Added the ability to change the icons for back and done buttons on Android. For more information see the [documentation](https://sh1d0w.github.io/multi_image_picker/#/theming) and the example app in this repository.
+
 ### Changed (v4.3.6)
 
 ## 2019-07-18
