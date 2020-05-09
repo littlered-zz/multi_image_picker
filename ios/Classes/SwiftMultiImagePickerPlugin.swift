@@ -45,10 +45,10 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
         let rootController = app.delegate!.window!!.rootViewController
         var flutterController: FlutterViewController? = nil
         if rootController is FlutterViewController {
-            flutterController = rootController as! FlutterViewController
+            flutterController = rootController as? FlutterViewController
         } else if app.delegate is FlutterAppDelegate {
-            if (app.delegate?.responds(to: Selector("flutterEngine")))! {
-                let engine: FlutterEngine? = app.delegate?.perform(Selector("flutterEngine"))?.takeRetainedValue() as! FlutterEngine
+            if (app.delegate?.responds(to: Selector(("flutterEngine"))))! {
+                let engine: FlutterEngine? = app.delegate?.perform(Selector(("flutterEngine")))?.takeRetainedValue() as? FlutterEngine
                 flutterController = engine?.viewController
             }
         }
@@ -67,6 +67,11 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
             }
             
             let vc = BSImagePickerViewController()
+            
+            if #available(iOS 13.0, *) {
+                // Disables iOS 13 swipe to dismiss - to force user to press cancel or done.
+                vc.isModalInPresentation = true
+            }
             let arguments = call.arguments as! Dictionary<String, AnyObject>
             let maxImages = arguments["maxImages"] as! Int
             let enableCamera = arguments["enableCamera"] as! Bool
@@ -161,7 +166,7 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
             let width = arguments["width"] as! Int
             let height = arguments["height"] as! Int
             let quality = arguments["quality"] as! Int
-
+            let compressionQuality = Float(quality) / Float(100)
             let manager = PHImageManager.default()
             let options = PHImageRequestOptions()
 
@@ -183,7 +188,7 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
                     options: options,
                     resultHandler: {
                         (image: UIImage?, info) in
-                        self.messenger.send(onChannel: "multi_image_picker/image/" + identifier + ".thumb", message: image?.jpegData(compressionQuality: CGFloat(quality / 100)))
+                        self.messenger.send(onChannel: "multi_image_picker/image/" + identifier + ".thumb", message: image?.jpegData(compressionQuality: CGFloat(compressionQuality)))
                         })
 
                 if(PHInvalidImageRequestID != ID) {
@@ -196,6 +201,7 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
             let arguments = call.arguments as! Dictionary<String, AnyObject>
             let identifier = arguments["identifier"] as! String
             let quality = arguments["quality"] as! Int
+            let compressionQuality = Float(quality) / Float(100)
             let manager = PHImageManager.default()
             let options = PHImageRequestOptions()
 
@@ -216,7 +222,7 @@ public class SwiftMultiImagePickerPlugin: NSObject, FlutterPlugin {
                     options: options,
                     resultHandler: {
                         (image: UIImage?, info) in
-                        self.messenger.send(onChannel: "multi_image_picker/image/" + identifier + ".original", message: image!.jpegData(compressionQuality: CGFloat(quality / 100)))
+                        self.messenger.send(onChannel: "multi_image_picker/image/" + identifier + ".original", message: image!.jpegData(compressionQuality: CGFloat(compressionQuality)))
                 })
 
                 if(PHInvalidImageRequestID != ID) {

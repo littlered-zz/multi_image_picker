@@ -4,13 +4,21 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.CursorIndexOutOfBoundsException;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Matrix;
-import android.media.ThumbnailUtils;
 import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Build;
+import android.provider.MediaStore;
+import android.provider.OpenableColumns;
+import android.text.TextUtils;
+import android.media.ThumbnailUtils;
+
+import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
+import androidx.exifinterface.media.ExifInterface;
 
 import com.sangcomz.fishbun.FishBun;
 import com.sangcomz.fishbun.FishBunCreator;
@@ -20,30 +28,13 @@ import com.sangcomz.fishbun.define.Define;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.Math;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
-
-import android.Manifest;
-import android.os.AsyncTask;
-import android.os.Build;
-import android.provider.OpenableColumns;
-import android.provider.MediaStore;
-
-import androidx.annotation.NonNull;
-import androidx.exifinterface.media.ExifInterface;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import android.text.TextUtils;
 
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
@@ -54,6 +45,7 @@ import io.flutter.plugin.common.PluginRegistry;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 
 import static android.media.ThumbnailUtils.OPTIONS_RECYCLE_INPUT;
+
 
 /**
  * MultiImagePickerPlugin
@@ -259,7 +251,8 @@ public class MultiImagePickerPlugin implements
                 uri = MediaStore.setRequireOriginal(uri);
             }
 
-            try (InputStream in = context.getContentResolver().openInputStream(uri)) {
+            try {
+                InputStream in = context.getContentResolver().openInputStream(uri);
                 assert in != null;
                 ExifInterface exifInterface = new ExifInterface(in);
                 finishWithSuccess(getPictureExif(exifInterface, uri));
@@ -700,19 +693,27 @@ public class MultiImagePickerPlugin implements
     }
 
     private static int getOrientation(Context context, Uri photoUri) {
-        try (Cursor cursor = context.getContentResolver().query(photoUri,
-                new String[]{MediaStore.Images.ImageColumns.ORIENTATION}, null, null, null)) {
-
-            if (cursor == null || cursor.getCount() != 1) {
-                return -1;
+        int rotationDegrees = 0;
+        try {
+            InputStream in = context.getContentResolver().openInputStream(photoUri);
+            assert (in != null);
+            ExifInterface exifInterface = new ExifInterface(in);
+            int orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, 1);
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    rotationDegrees = 90;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    rotationDegrees = 180;
+                    break;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    rotationDegrees = 270;
+                    break;
             }
-
-            cursor.moveToFirst();
-            return cursor.getInt(0);
-        } catch (CursorIndexOutOfBoundsException ignored) {
+        } catch (Exception ignored) {
 
         }
-        return -1;
+        return  rotationDegrees;
     }
 
     private static Bitmap getCorrectlyOrientedImage(Context context, Uri photoUri) throws IOException {
@@ -744,6 +745,29 @@ public class MultiImagePickerPlugin implements
         }
 
         return srcBitmap;
+    }
+
+    public static int calculateInSampleSize(
+            BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        // Raw height and width of image
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+
+            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+            // height and width larger than the requested height and width.
+            while ((halfHeight / inSampleSize) >= reqHeight
+                    && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+
+        return inSampleSize;
     }
 
     private void finishWithSuccess(List imagePathList) {

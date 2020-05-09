@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+### Change (v4.6.7)
+
+## 2020-04-30
+
+- Revert fix resizing an image causes jagged lines on Android
+
+### Change (v4.6.6)
+
+## 2020-04-11
+
+- Fix resizing an image causes jagged lines on Android
+
+### Change (v4.6.5+rc.1)
+
+## 2020-03-27
+
+- Disable iOS 13 swipe to dismiss - to force user to press cancel or done.
+
+### Change (v4.6.4)
+
+## 2020-03-21
+
+- Fix quality parameter on iOS that always was evaluated to 0
+
+### Change (v4.6.4-rc.1)
+
+## 2020-03-21
+
+- Add support for Android minSdkVersion 16 and up & fixing incorrect rotation in Android 10 [#414](https://github.com/Sh1d0w/multi_image_picker/pull/414)
+
 ### Change (v4.6.3)
 
 ## 2020-03-07
